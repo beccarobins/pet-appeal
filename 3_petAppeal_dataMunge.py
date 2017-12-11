@@ -3,16 +3,10 @@ import numpy as np
 import petAppeal
 
 local_file_path = ''
-petfinder_file = local_file_path + 'TEST'
+petfinder_file = local_file_path + 'petfinder_shelter_animals'
 
 shelter_animals = pd.read_csv(petfinder_file)
 
-###DELETE THIS
-file_path = '/home/becca/Insight Project/data files/shelter_animals.csv'
-shelter_animals = pd.read_csv(file_path)
-##
-
-#shelter_animals = shelter_animals.drop_duplicates(subset=['pet_id'])
 shelter_animals = shelter_animals.drop(labels='Unnamed: 0', axis=1)
 shelter_animals = shelter_animals.reset_index(drop=True)
 
