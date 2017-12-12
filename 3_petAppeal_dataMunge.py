@@ -6,9 +6,7 @@ local_file_path = ''
 petfinder_file = local_file_path + 'petfinder_shelter_animals'
 
 shelter_animals = pd.read_csv(petfinder_file)
-
 shelter_animals = shelter_animals.drop(labels='Unnamed: 0', axis=1)
-shelter_animals = shelter_animals.reset_index(drop=True)
 
 print 'Analyzing animals from', len(shelter_animals.shelter_id.unique()), 'animal shelters in', len(shelter_animals.state.unique()), 'states'
 
