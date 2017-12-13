@@ -17,10 +17,18 @@ import math
 ###Functions used to query the Petfinder database
 
 def shelterFinder(zipcode, petFinder_api_key):
-    '''Call the petfinder API shelter.find methods to get animal shelter info; 
-        shelter id can be used for petFinder function
-        see https://www.petfinder.com/developers/api-docs for 
-        shelter.find method arguments'''
+    '''Calls the petfinder API shelter.find method to get animal shelter info,
+        including the shelter id, which is required for getPets function.
+        
+        See https://www.petfinder.com/developers/api-docs for more information
+        on the shelter.find method.
+        
+        Args:
+            zipcode (str): A US or Canadian ZIP code.
+            petfinder_api_key (str): API key requested from Petfinder.
+
+        Returns:
+            shelters (DataFrame): A dataframe with detailed shelter information'''
     
     url = 'http://api.petfinder.com/shelter.find?key='+petFinder_api_key+'&location='+zipcode+'&format=json'
     
@@ -55,8 +63,17 @@ def shelterFinder(zipcode, petFinder_api_key):
 
 
 def getPets(shelter_id, petFinder_api_key):
-    '''Call the petfinder API shelter.getPets method to get pet info; 
-        shelter id can be used for petFinder function''' 
+    '''Calls the petfinder API shelter.getPets method to get pet info.
+    
+        See https://www.petfinder.com/developers/api-docs for more information
+        on the shelter.getPets method.
+        
+        Args:
+            shelter_id (str): A Petfinder specific ID.
+            petfinder_api_key (str): API key requested from Petfinder.
+
+        Returns:
+            pets (DataFrame): A dataframe with detailed pet information'''
         
     url = 'http://api.petfinder.com/shelter.getPets?key='+petFinder_api_key+'&id='+shelter_id+'&format=json'+'&count=1000'
 
