@@ -12,6 +12,8 @@ zip_code_list = zip_code_list.dropna(axis=0).reset_index().drop(labels=['Unnamed
 
 shelters = pd.DataFrame()
 
+##Runs through the list of zip codes and queries the Petfinder shelter.find method
+##Returns a dataframe of all shelters with details in the surrounding areas
 for i in range(0, len(zip_code_list)):
     
     zipcode = str(int(zip_code_list['shelter_zip_code'].iloc[i]))

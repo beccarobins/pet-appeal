@@ -10,14 +10,13 @@ url = 'https://raw.githubusercontent.com/beccarobins/PetAppeal/master/Petfinder%
 shelters = pd.read_csv(url)
 shelter_animals = pd.DataFrame()
 
+##Runs through the list of shelter IDs and queries the Petfinder shelter.getPets method
+##Returns a dataframe of all animals in the specified shelters with details
 for i in range(0, len(shelters)):
     shelter_id = shelters.shelter_id[i]
     shelter_animals = shelter_animals.append(petAppeal.getPets(shelter_id, petFinder_api_key))
-        
-shelter_animals = shelter_animals.drop_duplicates()
-shelter_animals = shelter_animals.reset_index().drop(['index'], axis = 1)
 
-##Add the file path where the shelter animal list should be saved
+#Add the file path where the shelter animal list should be saved
 local_file_path = ''
 petfinder_file = local_file_path + 'petfinder_shelter_animals'
 
