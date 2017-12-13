@@ -6,7 +6,7 @@ petFinder_api_key = ''
 
 ##This uses the animal shelters queried from the No Kill list to find animals
 ##Animal shelter ids are required to query for pets
-url = 'https://raw.githubusercontent.com/beccarobins/PetAppeal/master/Petfinder%20No%20Kill%20Shelters'
+url = 'https://raw.githubusercontent.com/beccarobins/PetAppeal/master/Petfinder%20No%20Kill%20Shelters.csv'
 shelters = pd.read_csv(url)
 shelter_animals = pd.DataFrame()
 
