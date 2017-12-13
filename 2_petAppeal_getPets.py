@@ -18,6 +18,6 @@ for i in range(0, len(shelters)):
 
 #Add the file path where the shelter animal list should be saved
 local_file_path = ''
-petfinder_file = local_file_path + 'petfinder_shelter_animals'
+petfinder_file = local_file_path + 'petfinder_shelter_animals.csv'
 
 shelter_animals.to_csv(petfinder_file)

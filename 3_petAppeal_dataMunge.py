@@ -3,14 +3,14 @@ import numpy as np
 import petAppeal
 
 local_file_path = ''
-petfinder_file = local_file_path + 'petfinder_shelter_animals'
+petfinder_file = local_file_path + 'petfinder_shelter_animals.csv'
 
 shelter_animals = pd.read_csv(petfinder_file)
 shelter_animals = shelter_animals.drop(labels='Unnamed: 0', axis=1)
 
 print 'Analyzing animals from', len(shelter_animals.shelter_id.unique()), 'animal shelters in', len(shelter_animals.state.unique()), 'states'
 
-shelter_animals['breed'] = shelter_animals['breed'].replace('()',np.nan)
+shelter_animals['breed'] = shelter_animals['breed'].replace('()','')
 shelter_animals.lastUpdate = pd.to_datetime(shelter_animals['lastUpdate'])
 shelter_animals['zip'] = shelter_animals['zip'].fillna(0).apply(np.int64)
 
@@ -41,6 +41,6 @@ image_df = petAppeal.image_analysis(shelter_animals['photos'])
 shelter_animals = image_df.merge(shelter_animals, left_index=True, right_index=True)
 
 local_file_path = ''
-petfinder_file = local_file_path + 'petfinder_data_clean'
+petfinder_file = local_file_path + 'petfinder_data_clean.csv'
 
 shelter_animals.to_csv(petfinder_file)

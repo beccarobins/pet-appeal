@@ -35,6 +35,6 @@ no_kill_shelters = no_kill_shelters.drop(labels=['shelter_zip_code', 'shelter_ci
 
 ##Add the file path where the shelter list should be saved
 local_file_path = ''
-petfinder_file = local_file_path + 'Petfinder No Kill Shelters'
+petfinder_file = local_file_path + 'Petfinder No Kill Shelters.csv'
 
 no_kill_shelters.to_csv(petfinder_file)
