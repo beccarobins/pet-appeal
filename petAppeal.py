@@ -13,24 +13,25 @@ import itertools
 from sklearn.metrics import roc_curve, auc
 from sklearn.utils import resample
 import math
+import squarify
 
-###Functions used to query the Petfinder database
 
 def shelterFinder(zipcode, petFinder_api_key):
-    '''Calls the petfinder API shelter.find method to get animal shelter info,
-        including the shelter id, which is required for getPets function.
+    '''
+        Calls the petfinder API shelter.find method to get animal shelter info.
         
-        See https://www.petfinder.com/developers/api-docs for more information
-        on the shelter.find method.
+        See https://www.petfinder.com/developers/api-docs for more info.
         
         Args:
             zipcode (str): A US or Canadian ZIP code.
             petfinder_api_key (str): API key requested from Petfinder.
 
         Returns:
-            shelters (DataFrame): A dataframe with detailed shelter information'''
+            shelters (DataFrame): A dataframe with detailed shelter information
+    '''
     
-    url = 'http://api.petfinder.com/shelter.find?key='+petFinder_api_key+'&location='+zipcode+'&format=json'
+    url = 'http://api.petfinder.com/shelter.find?key='+petFinder_api_key+\
+    '&location='+zipcode+'&format=json'
     
     try:
         json_obj = urllib.urlopen(url)
@@ -42,7 +43,8 @@ def shelterFinder(zipcode, petFinder_api_key):
                         'fax', 'id', 'phone', 'latitude', 'longitude', 'name',
                         'state', 'zip']
         
-        shelters = pd.DataFrame(index =range(0,len(individual_shelters)), columns=shelter_vars)
+        shelters = pd.DataFrame(index =range(0,len(individual_shelters)),
+                                columns=shelter_vars)
  
         for i in range(len(individual_shelters)):
             shelter_info = individual_shelters[i]
@@ -62,20 +64,31 @@ def shelterFinder(zipcode, petFinder_api_key):
     return shelters
 
 
-def getPets(shelter_id, petFinder_api_key):
-    '''Calls the petfinder API shelter.getPets method to get pet info.
+def getPets(shelter_id, petFinder_api_key, status):
+    '''
+        Calls the petfinder API shelter.getPets method to get pet info.
     
-        See https://www.petfinder.com/developers/api-docs for more information
-        on the shelter.getPets method.
+        See https://www.petfinder.com/developers/api-docs for more info.
         
         Args:
             shelter_id (str): A Petfinder specific ID.
             petfinder_api_key (str): API key requested from Petfinder.
 
         Returns:
-            pets (DataFrame): A dataframe with detailed pet information'''
+            pets (DataFrame): A dataframe with detailed pet information
+    '''
         
-    url = 'http://api.petfinder.com/shelter.getPets?key='+petFinder_api_key+'&id='+shelter_id+'&format=json'+'&count=1000'
+    url = 'http://api.petfinder.com/shelter.getPets?key='+petFinder_api_key+\
+    '&id='+shelter_id+'&status='+status+'&format=json&count=1000&output=full'
+
+    pet_vars = ['age', 'animal', 'breeds', 'description', 'id', 'contact',
+                    'lastUpdate', 'media', 'mix', 'name', 'options', 'sex',
+                    'shelterId', 'shelterPetId', 'size', 'status']
+        
+    shelter_vars = ['address1', 'address2', 'city', 'email', 'fax',
+                        'phone', 'state', 'zip']
+        
+    pets = pd.DataFrame(columns=pet_vars+shelter_vars)
 
     try:
         json_obj = urllib.urlopen(url)
@@ -95,7 +108,7 @@ def getPets(shelter_id, petFinder_api_key):
         shelter_vars = ['address1', 'address2', 'city', 'email', 'fax',
                         'phone', 'state', 'zip']
         
-        pets = pd.DataFrame(index =range(0,len(individual_pets)), columns=pet_vars+shelter_vars)
+        pets = pets.reindex(index=range(len(individual_pets)))
         
         for i in range(len(individual_pets)):
             pet_info = individual_pets[i] 
@@ -147,26 +160,42 @@ def getPets(shelter_id, petFinder_api_key):
                         
                 pets.ix[i,j]=val
                 del val
+        
+                
     except:
         print "Oops!",sys.exc_info(),\
         "occured.\nThere appear to be no animals at", shelter_id
-    
-    rename_cols = {'breeds': 'breed', 'shelterId': 'shelter_id', 'media': 'photos', 'shelterPetId': 'pet_id'}
-    pets.rename(columns=rename_cols, inplace=True)
-    pets = pets.drop(labels='contact', axis=1)
-    
+        
+    rename_cols = {'breeds': 'breed', 'shelterId': 'shelter_id',
+                       'media': 'photos', 'shelterPetId': 'pet_id'}
+    pets.rename(columns=rename_cols,
+                inplace=True)
+    pets = pets.drop(labels='contact',
+                     axis=1)
     
     return pets
 
 
 def sort_options(options_col):
-    '''Sorts through the options column provided by the petfinder API and 
-    returns either a yes or a no if the animal has that option'''
+    '''
+        Sorts through the options column provided by the petfinder API and 
+        returns either a yes or a no if the animal meets that condition.
+    
+        Args:
+            options_col (Series): Each row of the column contains a string
+                with the 'options' for that animal
+
+        Returns:
+            options (DataFrame): A dataframe containing a column for each option
+                and either a 'yes' or a 'no' if that option/condition is met
+                for the given animal is returned.
+    '''
     
     options_list = ['altered', 'hasShots', 'housetrained', 'noKids', 'noCats',
                'noDogs', 'noClaws', 'specialNeeds']
     
-    options =pd.DataFrame(index=range(0, len(options_col)), columns=options_list)
+    options =pd.DataFrame(index=range(0, len(options_col)),
+                          columns=options_list)
     
     for i in range(len(options_col)):
         for k in options_list:
@@ -184,9 +213,19 @@ def sort_options(options_col):
 
 
 def description_analysis(description_col):
-    '''Runs the animal description through sentiment analysis.
-    Returns the polarity, subjectivity, description length, 
-    and a categorical variable of whether a description is present.'''
+    '''
+        Runs the animal description through sentiment analysis quantifies the 
+        number of words.
+    
+        Args:
+            description_col (Series): Each row of the column contains a string
+                of the animal description.
+        Returns:
+            description (DataFrame): The word count (int), polarity (int), 
+                subjectivity (int), and a categorical feature, description
+                exists, which returns either a 'yes' or a 'no' if the
+                description is empty or not.
+    '''
 
     num_words = []
     description_polarity = []
@@ -212,18 +251,27 @@ def description_analysis(description_col):
             description_polarity.append(0.0)
             description_subjectivity.append(0.5)
            
-    description = pd.DataFrame({'numWords': num_words,
-                                'polarity': description_polarity, 
-                                'subjectivity': description_subjectivity, 
+    description = pd.DataFrame({'description_length': num_words, 
+                                'description_polarity': description_polarity, 
+                                'description_subjectivity': description_subjectivity, 
                                 'description_exists': description_exists})
     
     return description
 
 
 def multi_adoption(name_col):
-    '''Checks the name column for potential multiple adoptions.
-    Returns either a yes or a no.'''
-    
+    '''
+        Checks the name column for potential multiple adoptions.
+        
+        Args:
+            name_col (Series): Each row of the column contains a string of the
+                animals' name(s).
+        Returns:
+            multi_adoption (DataFrame): A categorical variable is returned with
+                either a 'yes' or a 'no' is the name string contains words that
+                suggest a multiple adoption.
+    '''
+            
     stopwords = ['adopts', 'neutered',"trn'd",'tnr', 'shots', 'spayed', '#',
                  'petsmart', 'pend', 'pendg','pendin', 'pending', 'hold',
                  'shelter', 'foster', 'adoption', 'reduced', 'fee', 'adopted',
@@ -253,7 +301,8 @@ def multi_adoption(name_col):
             else:
                 multi = 0
                 
-        multi_pet_potential = np.vstack([multi_pet_potential, multi])
+        multi_pet_potential = np.vstack([multi_pet_potential,
+                                         multi])
         multi_pet_potential = multi_pet_potential.sum()
         if multi_pet_potential>0:
             multi_animal_adoption.append('yes')
@@ -266,7 +315,17 @@ def multi_adoption(name_col):
 
 
 def image_analysis(image_col):
-    'Currently only determines whether photos have been uploaded.'''
+    '''
+        Currently only determines whether photos have been uploaded.
+    
+        Args:
+            image_col (Series): Each column contains a list of strings with the
+                url of a pet image.
+        Returns:
+            image (DataFrame): A categorical variable is returned with either a 
+                'yes' or a 'no' if the list either contains images or is empty.
+    '''
+            
     image_exists = []
     
     for i in range(len(image_col)):
@@ -285,11 +344,32 @@ def image_analysis(image_col):
 ####Data visualizations customized to the Petfinder color scheme
 
 def my_autopct(pct):
-    '''Determines the percentage of each variable in the total dataset'''
+    '''
+        Determines the percentage of each variable in the total dataset
+    
+        Args:
+            pct (): The percentage of each quantity for the specified variable.
+        Returns:
+            pct (): Returns only the percentages that are at least 
+                10% of the data
+    '''
+    
     return ('%.1f%%' % pct) if pct > 10 else ''
     
 def piePlot(data, labels, title):
-    '''Creates a pie plots with a bright color scheme'''
+    '''
+        Creates a pie plots with a bright color scheme.
+    
+        Args:
+            data (Series): A series with the categories as the index and
+                the quantity as the value.
+            labels (object): An array of the categories for the specific
+                feature to be plotted.
+            title (str): A string of the plot title.
+        Returns:
+            plt
+    '''
+            
     colors = ['#820fdf', '#0bc7ff', '#f8685f', '#f1b82d', '#df0fd9', '#0fdf35', 
               '#f17e24', '#244ff1']
     fig = plt.figure()
@@ -311,16 +391,45 @@ def piePlot(data, labels, title):
     plt.title(title.upper())
     plt.tight_layout()
     plt.show()
+    fname = title+'.png'
+    fig.savefig(fname,
+                transparent=False)
+    plt.close()
     
-def saveVar(variable_to_save, file_name):
-    '''Pickles a variable'''
+    return plt
+    
+def saveVar(variable, file_name):
+    '''
+        Pickles a variable
+        
+        Args:
+            variable (): The variable to be saved.
+            file_name (str): The string that the pickled variable will be
+                saved as.
+        Returns:
+            file_name.pickle: A pickle file of the variable.
+    '''
+    
     with open(file_name+'.pickle',"wb") as f:
-        pickle.dump(variable_to_save, f)
+        pickle.dump(variable, f)
 
-def plotROC(y_test, y_pred, model_str):
-    '''Plots a ROC curve'''
-    fpr, tpr, _ = roc_curve(y_test, y_pred)
-    roc_auc=auc(fpr, tpr)
+def plotROC(y_test, y_pred_prob, model_str):
+    '''
+        Plots a ROC curve.
+        
+        Args:
+            y_test (int64): An array of the test set class labels.
+            y_pred_prob (float64): An array of the prediction probabilities.
+            model_str (str): The name of the model (e.g., Random Forest,
+                      Decision Tree, etc.)
+        Returns:
+            plt
+    '''
+    
+    fpr, tpr, _ = roc_curve(y_test,
+                            y_pred_prob)
+    roc_auc=auc(fpr,
+                tpr)
     fig = plt.figure()
     ax = fig.add_subplot(111)
     plt.plot(fpr,
@@ -371,25 +480,38 @@ def plotROC(y_test, y_pred, model_str):
     plt.show()
     fname = model_str+' ROC Curve.png'
     fig.savefig(fname,
-                transparent=True)
-    #plt.close()
+                transparent=False)
+    plt.close()
     
-def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Purples):
-    """
-    This function prints and plots the confusion matrix.
-    Normalization can be applied by setting `normalize=True`.
-    """
+    return plt
+    
+def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'):
+    '''
+        This function prints and plots the confusion matrix.
+        Normalization can be applied by setting `normalize=True`.
+        
+        Args:
+            cm (int64): An int array created by the sklearn.metrics 
+                confusion_matrix function.
+            classes (object): An object array containing the class labels.
+            normalize (Boolean): True plots normalized confusion matrix.
+            title (str): A string with the title for the plot.
+        Returns:
+            plt
+    '''
+    
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
         print("Normalized confusion matrix")
     else:
         print('Confusion matrix, without normalization')
 
-    fig, ax = plt.figure(1)
+    print(cm)
+    fig = plt.figure()
     fname = title +'.png'
     plt.imshow(cm,
                interpolation='nearest',
-               cmap=cmap)
+               cmap=plt.cm.Purples)
     plt.title(title,
               fontsize=(18),
               fontweight='bold')
@@ -407,7 +529,8 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     fmt = '.2f' if normalize else 'd'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i,
+        plt.text(j,
+                 i,
                  format(cm[i, j], fmt),
                  horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black")
@@ -420,18 +543,27 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
                fontsize=(18),
                fontweight='bold')
     plt.tight_layout()
-    ax.grid(False)
     plt.show()
+    fname = title+'.png'
     fig.savefig(fname,
-                transparent=True)
-    #plt.close()
+                transparent=False)
+    plt.close()
+    
+    return plt
     
 
 def horizontal_bar(data, title):
-    '''Creates a horizontal bar chart'''
-    data = data.as_matrix()
-    
-    np.random.seed(19680801)
+    '''
+        Creates a horizontal bar chart.
+        
+        Args:
+            data (float64): Dataset to plot in the form of a NumPy array.
+            title (str): A string with the plot title
+        Returns:
+            plt
+    '''
+       
+    #np.random.seed(19680801)
     plt.rcdefaults()
     fig, ax = plt.subplots()
     fig = plt.figure(1)
@@ -439,26 +571,47 @@ def horizontal_bar(data, title):
     plt.tick_params(axis='both',
                     which='major',
                     labelsize=14)
-    plt.tick_params(axis='both', which='minor', labelsize=14)
     status = ('Available', 'Adopted')
     y_pos = np.arange(len(status))
     colors = ['#f8685f', '#f1b82d']
-    ax.barh(y_pos, data, color=colors, ecolor='black')
+    ax.barh(y_pos,
+            data,
+            color=colors,
+            ecolor='black')
     ax.set_yticks(y_pos)
-    ax.set_yticklabels(status, fontsize=(18))
+    ax.set_yticklabels(status,
+                       fontsize=(18))
     ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('Count', fontsize=(18))
-    ax.set_xlim([0, 20000])
+    ax.set_xlabel('Count',
+                  fontsize=(18))
+    xmax = (max(data)/ 100.0) * 100+100
+    ax.set_xlim([0, xmax])
     plt.tight_layout()
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     plt.show()
-#    fig.savefig(title+'.png', transparent=True)
-#    plt.close()
+    fname = title+'.png'
+    fig.savefig(fname,
+                transparent=False)
+    plt.close()
+    
+    return plt
     
 def plot_feature_importance(x_train, importances, features, color):
-    '''Plots the feature importances as a horizontal bar graph in
-    descending order of importance'''
+    '''
+        Plots the feature importances as a horizontal bar graph in
+        descending order of importance
+        
+        Args:
+            x_train (float64): The encoded training set.
+            importances (float64): An array the length of the feature set with
+                the numerical (0-1) level of importance.
+            features (list): A list containing a string of each feature.
+            color (str): The desired font color; either white or black.
+        Returns:
+            plt
+    '''
+    
     indices = np.argsort(importances)[::-1]
     arr1 = indices
     arr2 = np.array(features) #featureHeaders is the name of my list of features
@@ -507,13 +660,25 @@ def plot_feature_importance(x_train, importances, features, color):
     plt.tight_layout()
     ax.grid(False)
     plt.show()
-    model_str = 'Random Forest'
-    fname = model_str+' Feature Importance.png'
-    fig.savefig(fname, transparent=True)
-    #plt.close()
+    fig.savefig('Feature Importance',
+                transparent=False)
+    plt.close()
+    
+    return plt
     
 def group_bar_graph(df, labels, feature):
-    '''Create a vertical grouped bar graph to view each feaure by status'''
+    '''
+        Create a vertical grouped bar graph to view each feature by status.
+        
+        Args:
+            df (DataFrame): A subset of the full feature set containing only 
+                the categorical variables.
+            labels (list): An ordered list of the categories for the specified
+                feature.
+            feature (str): The name of the feature to be plotted.
+        Returns:
+            plt
+    '''
 
     pos = list(range(len(df)))
     width = 0.25 
@@ -523,18 +688,17 @@ def group_bar_graph(df, labels, feature):
     
     plt.bar(pos, 
             df[labels[0]], 
-            width, 
-            alpha=0.5, 
+            width,
             color='#f8685f', 
             label=df[feature][0]) 
     
     plt.bar([p + width for p in pos], 
             df[labels[1]],
             width, 
-            alpha=0.5, 
             color='#f1b82d', 
             label=df[feature][1]) 
     ax.set_ylabel('Count')
+    ax.set_facecolor('white')
     ax.set_title(feature)
     ax.set_xticks([p + 1.5 * width for p in pos])
     ax.set_xticklabels(df[feature],
@@ -546,10 +710,23 @@ def group_bar_graph(df, labels, feature):
     plt.legend(labels,
                loc='upper left', 
                frameon=False)
-    plt.show()
+    fname = feature+'.png'
+    fig.savefig(fname,
+                transparent=False)
+    plt.close()
+    
+    return plt
     
 def encode_data(df):
-    '''Encode data for ML purposes'''
+    '''
+        Encodes the data into the appropriate format for running through 
+        machine learning models.
+        
+        Args:
+            df (DataFrame): The entire (clean) feature set.
+        Returns:
+            df (DataFrame): An encoded feature set.
+    '''
     
     ###determine is column consits of yes/no, run through loop/comprehension?
     yes_no = ['yes', 'no']
@@ -581,20 +758,32 @@ def encode_data(df):
     return df
 
 
-def balance_check(df, label_col):
-    '''Checks the (two-class) for imbalance issues
-    Downsamples the data if the imbalance exceeds a certain threshold
-    Returns either the same df (if below threshold) or the class balanced df'''
-    balance_check = df.groupby(label_col).size()
+def balance_check(df, label):
+    '''
+        Checks the (two-class) for imbalance issues
+        Downsamples the data if the imbalance exceeds a certain threshold
+        Returns either the same df (if below threshold) or the class balanced df
+        
+        Args:
+            df (DataFrame): The entire feature set, including class labels.
+            label (str): The name of the class label column.
+        Returns:
+            df (DataFrame): The entire feature set; either unchanged, or 
+                downsampled if the class imbalance exceeds 1:4 or 4:1.
+    '''
+    
+    balance_check = df.groupby(label).size()
     balance_ratio = float(balance_check[0])/float(balance_check[1])
     
     if balance_ratio>1.6 or balance_ratio<0.6:
         
         labels = balance_check.index.values
-        piePlot(balance_check, labels, 'Status - Imbalanced')
+        piePlot(balance_check,
+                labels,
+                'Status - Imbalanced')
         
-        group1 = df[(df[label_col]== balance_check.index[0])]
-        group2 = df[(df[label_col]== balance_check.index[1])]
+        group1 = df[(df[label]== balance_check.index[0])]
+        group2 = df[(df[label]== balance_check.index[1])]
         
         if balance_ratio>1.6:
             group1 = resample(group1,
@@ -605,19 +794,127 @@ def balance_check(df, label_col):
             
         df = group1.append(group2)
         
-        balance_check = df.groupby(label_col).size()
-        piePlot(balance_check, labels, 'Status - Balanced')
+        balance_check = df.groupby(label).size()
+        piePlot(balance_check,
+                labels,
+                'Status - Balanced')
         
     return df
 
-def plot_hist(data1, data2, feature):
-    '''Plots the distribution(s) of the numerical variables by status'''
+def plot_hist(data1, data2, feature, units):
+    '''
+        Plots the distribution(s) of the numerical variables by status
+        
+        Args:
+            data1 (Series): The dataset for the first class.
+            data2 (Series): The dataset for the second class.
+            feature (str): The feature displayed on the histogram;
+                            used for the title
+            units (str): The units of the feature; used for the x label.
+        Returns:
+            plt: A histogram with the distributions for both dataset 1
+                    and dataset 2 on top of one another.
+    '''
+    
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    plt.hist(data1, bins='auto', facecolor='#f8685f')
-    plt.hist(data2, bins='auto', facecolor='#f1b82d', alpha=0.5)
-    plt.title(feature)
-    plt.legend(loc='upper right', frameon=False, prop={'size': 14})
-    ax.set_ylabel('Count', fontsize=(18))
+    plt.hist(data1,
+             bins='auto',
+             facecolor='#f8685f')
+    plt.hist(data2,
+             bins='auto',
+             facecolor='#f1b82d',
+             alpha=0.5)
+    plt.title(feature.upper(),
+              fontdict= {'fontsize': 20,
+               'fontweight': 'bold'})
+    plt.legend(loc='upper right',
+               frameon=False,
+               prop={'size': 16})
+    ax.set_ylabel('Count',
+                  fontsize=(18))
+    ax.set_xlabel(units,
+                  fontsize=(18))
     ax.grid(False)
+    ax.set_facecolor('white')
+    plt.tick_params(axis='both',
+                    which='both',
+                    labelsize=14)
+    plt.legend(['Adopted', 'Available'],
+               loc='best', 
+               frameon=False,
+               fontsize=14)
     plt.show()
+    fname = feature+'.png'
+    fig.savefig(fname,
+                transparent=False)
+    plt.close()
+    
+    return plt
+    
+    
+def unique_breeds(breed_col):
+    '''
+        Runs through the column of breeds, removes stop words 
+        (i.e., coat colors), and identifies and quantifies unqiue breeds.
+        Args:
+            breed_col (Series): Each row contains a string with the breed of 
+                the animal.
+        Returns:
+            breeds (Series): The series contains the unique breeds as an index 
+                and the quantity of that breed as the value.
+    '''
+    
+    coat_colors = ['Yellow', 'Chocolate', 'Black', 'Tan']
+    
+    breeds = breed_col.dropna()
+    breeds = [i.split(',') for i in breeds]
+    breeds = [item for sublist in breeds for item in sublist]
+    
+    breeds = [i.split('/') for i in breeds]
+    breeds = [item for sublist in breeds for item in sublist]
+    
+    breeds = [item.translate(None, string.punctuation).strip() for item in breeds]
+    breeds = [re.sub("\((.*?)\)",'', i) for i in breeds]
+    
+    for color in coat_colors:
+        breeds = [re.sub(color,'', i).strip() for i in breeds]
+    
+    breeds = pd.Series(breeds,
+                       name='count')
+    breeds = breeds.groupby(breeds).count()
+    
+    return breeds
+
+def plot_treemap(breed_col, animal_type):
+    '''
+        Creates a treemap of the breeds for each animal type. The large the
+        quantity of a given breed, the larger the box.
+        Args:
+            breed_col (Series): The series contains the breeds as an index and
+                the quantity of that breed as the value for the given i.
+            animal_type (str): The animal type plotted (e.g., cat, dog, etc.)
+        Returns:
+            plt
+    '''
+    
+    colors = ['#820fdf', '#0bc7ff', '#f8685f', '#f1b82d', '#df0fd9', '#0fdf35', 
+              '#f17e24', '#244ff1']
+    fig = plt.figure()
+    
+    labels= [breed_col.index[i]+' ('+str(breed_col[i])+')' for i in range(len(breed_col))]   
+    squarify.plot(sizes=breed_col,
+                  label=labels,
+                  color=colors,
+                  alpha=.4)
+    plt.axis('off')
+    plt.rc('font',
+           size=10)
+    plt.title(animal_type)
+    plt.show()
+    fname = animal_type+'_treemap.png'
+    fig.savefig(fname,
+                transparent=False)
+    plt.close()
+    
+    return plt

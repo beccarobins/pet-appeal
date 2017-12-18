@@ -1,6 +1,8 @@
 import pandas as pd
 import petAppeal
 
+local_file_path = ''
+
 ##Request api key and api secret from https://www.petfinder.com/developers/api-docs
 petFinder_api_key = ''
 
@@ -23,7 +25,7 @@ for i in range(0, len(zip_code_list)):
     
     shelters = shelters.append(petAppeal.shelterFinder(zipcode, petFinder_api_key))
 
-shelters = shelters.drop_duplicates(subset=['shelter_id'])
+shelters = shelters.drop_duplicates(subset=['id'])
 shelters = shelters.reset_index().drop(['index'], axis = 1)
 
 ##Gotchas

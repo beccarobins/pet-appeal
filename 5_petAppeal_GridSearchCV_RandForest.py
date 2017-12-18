@@ -6,8 +6,8 @@ from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedSh
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
 
-local_file_path = ''
-petfinder_file = local_file_path + 'petfinder_data_clean.'
+local_file_path = '/'
+petfinder_file = local_file_path + 'petfinder_data_clean.csv'
 
 cats_dogs = pd.read_csv(petfinder_file)
 cats_dogs = cats_dogs[(cats_dogs.animal == 'Cat') | (cats_dogs.animal == 'Dog')]
