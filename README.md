@@ -1,6 +1,6 @@
 # PetAppeal
 
-Welcome to the PetAppeal repo! This repo contains codes that allow you to easily query, clean, and model data gathered from the Petfinder database. The ultimate aim of the PetAppeal project is to determine the factors leading to pet adoptions and help promote pet adoption in the United States. 
+Welcome to the PetAppeal repo! This repo contains code that allows you to easily query, clean, and model data gathered from the Petfinder database. The ultimate aim of the PetAppeal project is to determine the factors leading to pet adoptions and help promote pet adoption in the United States. 
 
 ## Petfinder API
 The Petfinder API lets users easily query the Petfinder database for animal shelter information, individual pet information, and breed information. A total of 10,000 requests can be made per day and a maximum of 1,000 records can be returned per request. To get started, you will need to request an API (https://www.petfinder.com/developers/api-docs). A csv of all shelters listed in the Petfinder database between November 22 and November 26, 2017 has been provided.
